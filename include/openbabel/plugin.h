@@ -461,6 +461,7 @@ public:
   OB_STATIC_PLUGIN(PCModelFormat, thePCModelFormat)
   OB_STATIC_PLUGIN(PDBFormat, thePDBFormat)
   OB_STATIC_PLUGIN(PDBQTFormat, thePDBQTFormat)
+  OB_STATIC_PLUGIN(PDBTFormat, thePDBTFormat)
 #ifdef HAVE_LIBZ
   OB_STATIC_PLUGIN(PNGFormat, thePNGFormat)
 #endif

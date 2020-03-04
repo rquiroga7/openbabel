@@ -313,6 +313,7 @@ std::vector<std::string> EnableStaticPlugins()
   plugin_ids.push_back(reinterpret_cast<OBPlugin*>(&thePCModelFormat)->GetID());
   plugin_ids.push_back(reinterpret_cast<OBPlugin*>(&thePDBFormat)->GetID());
   plugin_ids.push_back(reinterpret_cast<OBPlugin*>(&thePDBQTFormat)->GetID());
+  plugin_ids.push_back(reinterpret_cast<OBPlugin*>(&thePDBTFormat)->GetID());
 #ifdef HAVE_LIBZ
   plugin_ids.push_back(reinterpret_cast<OBPlugin*>(&thePNGFormat)->GetID());
 #endif

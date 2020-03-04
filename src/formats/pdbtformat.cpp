@@ -806,7 +806,7 @@ namespace OpenBabel
     return true;
   }
   /////////////////////////////////////////////////////////////////////////
-  int CompareBondAtoms(const void *a, const void *b)
+  int CompareBondAtoms2(const void *a, const void *b)
   {
     const OBAtom **da = (const OBAtom **)a;
     const OBAtom **db = (const OBAtom **)b;
@@ -816,7 +816,7 @@ namespace OpenBabel
     return ((aIdx > bIdx) - (aIdx < bIdx));
   }
   /////////////////////////////////////////////////////////////////////////
-  int CompareBonds(const void *a, const void *b)
+  int CompareBonds2(const void *a, const void *b)
   {
     const OBAtom ***da = (const OBAtom ***)a;
     const OBAtom ***db = (const OBAtom ***)b;
@@ -907,11 +907,11 @@ namespace OpenBabel
               rotBondTable[rotBondId] = new OBAtom *[2];
               rotBondTable[rotBondId][0] = (*it)->GetBeginAtom();
               rotBondTable[rotBondId][1] = (*it)->GetEndAtom();
-              qsort(rotBondTable[rotBondId], 2, sizeof(OBAtom *), CompareBondAtoms);
+              qsort(rotBondTable[rotBondId], 2, sizeof(OBAtom *), CompareBondAtoms2);
               rotBondId++;
             }
           }
-          qsort(rotBondTable, nRotBond, sizeof(OBAtom **), CompareBonds);
+          qsort(rotBondTable, nRotBond, sizeof(OBAtom **), CompareBonds2);
           ofs << "REMARK  " << nRotBond << " active torsions:" << endl;
           ofs << "REMARK  status: ('A' for Active; 'I' for Inactive)" << endl;
           for (rotBondId=0; rotBondId < nRotBond; rotBondId++)
