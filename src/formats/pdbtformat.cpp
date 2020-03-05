@@ -829,10 +829,12 @@ bool MyIsEsterCarbonile(OBAtom *atom)
                      else  cout << "Carbono de hibridizacion 3 sin tipo de atomo";
                      break;
                  case 2:
-                     element_name_final[0]='A';  element_name_final[1]='0';
+                     element_name_final[0]='A';  element_name_final[1]=' ';
+//                     element_name_final[0]='A';  element_name_final[1]='0'; // SP2 carbons
                      break;
                  case 1:
-                     element_name_final[0]='A'; element_name_final[1]='0';
+                     element_name_final[0]='A'; element_name_final[1]=' ';
+//                     element_name_final[0]='A';  element_name_final[1]='0'; // SP1 carbons
                      break;
                  default:
                      cout << "Que corno paso con los Carbonos" ;
