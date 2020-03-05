@@ -4,12 +4,11 @@ Some portions Copyright (C) 2003-2006 Geoffrey R. Hutchison
 Some portions Copyright (C) 2004 by Chris Morley
 
 Original Copyright refers to the pdbformat.cpp file, for reading and
-writing pdb format files.
-Extensively modified 2019 Rodrigo Quiroga and Marcos Villarreal
+writing pdb format files. Some portions Copyright (C) 2010 by 
+Stuart Armstrong of Source Science/InhibOx.
+Extensively modified 2019/2020 by Rodrigo Quiroga and Marcos Villarreal
 for the purpose of reading and writing pdbt format files for use with
 Vinardo 2 scoring function.
-Some portions Copyright (C) 2010 by Stuart Armstrong of Source Science/
-InhibOx
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -117,6 +116,25 @@ namespace OpenBabel
 
   ////////////////////////////////////////////////////
   /// Utility functions
+
+  static bool MyIsPhosPhateOxygen(OBAtom * bond);
+  static bool MyIsPhosPhateBridgeOxygen(OBAtom * bond);
+  static bool MyIsSulfonamideOxygen(OBAtom * bond);
+  static bool MyIsSulfonamideNitrogen(OBAtom * bond);
+  static bool MyIsSulfurAcceptor(OBAtom * bond);
+  static bool MyIsEtherOxygen(OBAtom * bond);
+  static bool MyIsThioEtherSulfur(OBAtom * bond);
+  static bool MyIsDiSulfur(OBAtom * bond);
+  static bool MyIsCarbonile(OBAtom * bond);
+  static bool MyIsThioOxoSulfur(OBAtom * bond);
+  static bool MyIsPyridineOxygen(OBAtom * bond);
+  static bool MyIsEsterOxygen(OBAtom * bond);
+  static bool MyIsAnilineNitrogen(OBAtom * bond);
+  static bool MyIsNitroNitrogen(OBAtom * bond);
+  static bool MyIsNitrileNitrogen(OBAtom * bond);
+  static bool MyIsAmideOxygen(OBAtom * bond);
+  static bool MyIsEsterCarbonile(OBAtom * bond);
+  static bool MyIsAmidineNitrogen(OBAtom * bond);
   static bool parseAtomRecord(char *buffer, OBMol & mol, int chainNum);
   static bool IsRotBond_PDBT(OBBond * the_bond);
   static bool IsIn(const vector<int>& vec, const int num);
@@ -319,6 +337,373 @@ namespace OpenBabel
     return(true);
   }
 
+/////////////////////////////
+    bool MyIsPhosphateOxygen(OBAtom *atom)
+    {
+        if (!atom->GetAtomicNum() == OBElements::Oxygen)
+/* atom->GetAtomicNum() == OBElements::Oxygen  cambiar todos los "isx()" por "obelements::" */
+            return(false);
+        if (atom->GetHvyDegree() != 1)
+            return(false);
+
+        FOR_NBORS_OF_ATOM(nbr, atom)
+           if(nbr->GetAtomicNum() == OBElements::Phosphorus && nbr->CountFreeOxygens() > 1) return(true);
+
+        return(false);
+    }
+
+    bool MyIsPhosphateBridgeOxygen(OBAtom *atom)
+    {
+        if (!atom->GetAtomicNum() == OBElements::Oxygen)
+            return(false);
+        if (atom->GetHvyDegree() != 2)
+            return(false);
+
+        FOR_NBORS_OF_ATOM(nbr, atom)
+           if(nbr->GetAtomicNum() == OBElements::Phosphorus && nbr->CountFreeOxygens() > 1) return(true);
+
+        return(false);
+    }
+
+bool MyIsCarbonile(OBAtom *atom)
+	{
+		if (!atom->GetAtomicNum() == OBElements::Oxygen)
+			return(false);
+		if (atom->GetHvyDegree() != 1){
+			return(false);
+		}
+		OBAtom *nbr = NULL;
+		FOR_NBORS_OF_ATOM(nbr, atom) {
+			if (nbr->GetAtomicNum() == OBElements::Oxygen){ 
+	       		return(true); 
+			}  
+          
+		}	
+	return(false);
+    }
+
+    bool MyIsSulfurAcceptor(OBAtom *atom)
+    {
+        if (!atom->GetAtomicNum() == OBElements::Sulfur)
+            return(false);
+        else if (atom->GetHvyDegree() > 2)
+            return(false);
+		else
+        	return(true);
+    }
+
+    bool MyIsEtherOxygen(OBAtom *atom)
+    {
+       if (!atom->GetAtomicNum() == OBElements::Oxygen)
+          return(false);
+       if (atom->GetHvyDegree() != 2){
+          //cerr << "sulfone> O valence is not 1\n";
+         return(false);
+       }
+        unsigned int carbonCount = 0;
+	    FOR_NBORS_OF_ATOM(nbr, atom)
+          if (nbr->GetAtomicNum() == OBElements::Carbon){ 
+            carbonCount += 1;
+            if (carbonCount == 2){ 
+              return(true); 
+            }
+          }
+	}
+
+    bool MyIsThioEtherSulfur(OBAtom *atom)
+    {
+       if (!atom->GetAtomicNum() == OBElements::Sulfur)
+          return(false);
+       if (atom->GetHvyDegree() != 2){
+          //cerr << "sulfone> O valence is not 1\n";
+         return(false);
+       }
+        unsigned int carbonCount = 0;
+	    FOR_NBORS_OF_ATOM(nbr, atom)
+          if (nbr->GetAtomicNum() == OBElements::Carbon){ 
+            carbonCount += 1;
+            if (carbonCount == 2){ 
+              return(true); 
+            }
+          }
+	}
+
+    bool MyIsThioOxoSulfur(OBAtom *atom)
+    {
+       if (!atom->GetAtomicNum() == OBElements::Sulfur)
+          return(false);
+       if (atom->GetHvyDegree() != 1){
+          //cerr << "sulfone> O valence is not 1\n";
+         return(false);
+       }
+	    FOR_NBORS_OF_ATOM(nbr, atom) {
+           if (nbr->GetAtomicNum() == OBElements::Carbon && nbr->GetHyb() == 2){ 
+              return(true); 
+            }
+        }
+	}
+
+    bool MyIsDiSulfur(OBAtom *atom)
+    {
+       if (!atom->GetAtomicNum() == OBElements::Sulfur)
+          return(false);
+       if (atom->GetHvyDegree() != 2){
+          //cerr << "sulfone> O valence is not 1\n";
+         return(false);
+       }
+        unsigned int carbonCount = 0;
+        unsigned int sulfurCount = 0;
+	    FOR_NBORS_OF_ATOM(nbr, atom) {
+          if (nbr->GetAtomicNum() == OBElements::Carbon){ 
+              carbonCount += 1; 
+			  if (carbonCount == 1 && sulfurCount == 1) { return(true); }
+		  }
+          if (nbr->GetAtomicNum() == OBElements::Sulfur){ 
+            sulfurCount += 1; 
+			if (carbonCount == 1 && sulfurCount == 1) { return(true); }
+		  }
+          }
+	}
+
+
+    bool MyIsPyridineOxygen(OBAtom *atom)
+    {
+       if (!atom->GetAtomicNum() == OBElements::Oxygen)
+          return(false);
+       if (atom->GetHvyDegree() != 1){
+          //cerr << "sulfone> O valence is not 1\n";
+         return(false);
+       }
+        unsigned int carbonCount = 0;
+	    FOR_NBORS_OF_ATOM(nbr, atom)
+          if (nbr->GetAtomicNum() == OBElements::Carbon && nbr->IsAromatic()){ 
+              return(true); 
+            }
+    }
+
+    bool MyIsAmidineNitrogen(OBAtom *atom)
+    {
+       if (!atom->GetAtomicNum() == OBElements::Nitrogen)
+          return(false);
+       if (atom->GetHvyDegree() != 1){
+         return(false);
+       }
+	    FOR_NBORS_OF_ATOM(nbr, atom)
+          if (nbr->GetAtomicNum() == OBElements::Carbon && nbr->GetHvyDegree() == 3 ){ 
+	        unsigned int amineCount = 0;
+	        OBBond *bond1;
+	        OBBondIterator i;
+			for (bond1 = nbr->BeginBond(i); bond1; bond1 = nbr->NextBond(i)){
+		 	  if (bond1->GetEndAtom()->GetAtomicNum() == OBElements::Nitrogen && bond1->GetEndAtom()->GetHvyDegree() == 1)  {
+ 					amineCount += 1 ;
+     	  	  }  
+			}
+			if ( amineCount > 1 ) {              	return(true); }
+		  }
+	}
+
+bool MyIsAmideOxygen(OBAtom *atom)
+    {
+       if (!atom->GetAtomicNum() == OBElements::Oxygen)
+          return(false);
+       if (atom->GetHvyDegree() != 1){
+          //cerr << "sulfone> O valence is not 1\n";
+         return(false);
+       }
+       OBAtom *nbr = NULL;
+       OBBond *bond1;
+       OBBondIterator i;
+	    FOR_NBORS_OF_ATOM(nbr, atom) {
+          if (nbr->GetAtomicNum() == OBElements::Carbon && nbr->GetHyb() == 2){ 
+       		for (bond1 = nbr->BeginBond(i); bond1; bond1 = nbr->NextBond(i))
+		 	  if (bond1->IsAmide())  {
+              return(true); 
+     	  	  }  
+          }
+		}
+    }
+
+
+//    {
+//       if ( !atom->GetAtomicNum() == OBElements::Oxygen )
+//          return(false);
+//		if ( atom->GetHvyDegree() != 1 )
+//			return(false);
+//       // searching for attached carbon
+
+//	    FOR_NBORS_OF_ATOM(nbr, atom)
+//          if (nbr->GetAtomicNum() == OBElements::Carbon){ 
+//			  FOR_NBORS_OF_ATOM(nbr2, nbr)
+//         	 	if (nbr2->IsAmideNitrogen() ){ 
+//              		return(true); 
+//            	}
+//          }
+//			else return(false);
+//     
+//	}
+
+
+bool MyIsEsterCarbonile(OBAtom *atom)
+    {
+       if (!atom->GetAtomicNum() == OBElements::Oxygen)
+          return(false);
+       if (atom->GetHvyDegree() != 1){
+          //cerr << "sulfone> O valence is not 1\n";
+         return(false);
+       }
+       OBAtom *nbr = NULL;
+       OBBond *bond1;
+       OBBondIterator i;
+	    FOR_NBORS_OF_ATOM(nbr, atom) {
+          if (nbr->GetAtomicNum() == OBElements::Carbon){ 
+       		for (bond1 = nbr->BeginBond(i); bond1; bond1 = nbr->NextBond(i))
+		 	  if (bond1->IsEster())  {
+              return(true); 
+     	  	  }  
+          }
+		}	
+    }
+
+    bool MyIsEsterOxygen(OBAtom *atom)
+    {
+       if (!atom->GetAtomicNum() == OBElements::Oxygen)
+          return(false);
+       if (atom->GetHvyDegree() != 2){
+          //cerr << "sulfone> O valence is not 1\n";
+         return(false);
+       }
+       OBAtom *nbr = NULL;
+       OBBond *bond1;
+       OBBondIterator i;
+
+       for (bond1 = atom->BeginBond(i); bond1; bond1 = atom->NextBond(i))
+	 	  if (bond1->IsEster())  {
+              return(true); 
+     	  }    
+    }
+
+    bool MyIsAnilineNitrogen(OBAtom *atom)
+    {
+       if (!atom->GetAtomicNum() == OBElements::Nitrogen)
+          return(false);
+       if (atom->GetHvyDegree() != 1){
+          //cerr << "sulfone> O valence is not 1\n";
+         return(false);
+       }
+	    FOR_NBORS_OF_ATOM(nbr, atom)
+          if (nbr->GetAtomicNum() == OBElements::Carbon && nbr->IsAromatic()){ 
+              return(true); 
+            }
+    }
+
+    bool MyIsNitrileNitrogen(OBAtom *atom)
+    {
+       if (!atom->GetAtomicNum() == OBElements::Nitrogen)
+          return(false);
+       if (atom->GetHvyDegree() != 1 || atom->GetHyb() != 1)
+         return(false);
+	    FOR_NBORS_OF_ATOM(nbr, atom)
+          if (nbr->GetAtomicNum() == OBElements::Carbon && nbr->GetHyb() == 1 && nbr->GetHvyDegree() == 2){ 
+              return(true); 
+            }
+    }
+
+    bool MyIsNitroNitrogen(OBAtom *atom)
+    {
+       if (!atom->GetAtomicNum() == OBElements::Nitrogen)
+          return(false);
+       if (atom->GetHvyDegree() < 3){
+          //cerr << "sulfone> O valence is not 1\n";
+         return(false);
+       }
+	    FOR_NBORS_OF_ATOM(nbr, atom)
+	    if (nbr->IsNitroOxygen()){ 
+	        return (true);
+	    }
+    }
+
+
+
+
+
+
+    bool MyIsSulfonamideOxygen(OBAtom *atom)
+  // Stefano Forli.
+  //atom is connected to a sulfur that has a total
+  //of 2 attached free oxygens
+  //e.g. C-SO2-N
+    {
+       if (!atom->GetAtomicNum() == OBElements::Oxygen)
+          return(false);
+       if (atom->GetHvyDegree() != 1){
+          //cerr << "sulfone> O valence is not 1\n";
+         return(false);
+       }
+
+       OBAtom *nbr = NULL;
+       OBBond *bond1,*bond2;
+       OBBondIterator i,j;
+
+       // searching for attached sulfur
+       for (bond1 = atom->BeginBond(i); bond1; bond1 = atom->NextBond(i))
+         if ((bond1->GetNbrAtom(atom))->GetAtomicNum() == OBElements::Sulfur) {
+             nbr = bond1->GetNbrAtom(atom);
+             break;
+         }
+         if (!nbr){ //cerr << "sulfone> atom null\n" ;
+             return(false);
+         }
+
+    // check for sulfate
+    //cerr << "sulfone> If we're here... " << atom->GetAtomicNum() <<"\n" << atom->GetAtomicNum() == OBElements::Sulfur << "\n";
+    //cerr << "sulfone> number of free oxygens:" << atom->CountFreeOxygens() << "\n";
+    if (nbr->CountFreeOxygens() != 2){
+      //cerr << "sulfone> count of free oxygens not 2" << atom->CountFreeOxygens() << '\n' ;
+      return(false); }
+      
+    // check for sulfonamide
+    for (bond2 = nbr->BeginBond(j);bond2;bond2 = nbr->NextBond(j)){
+      //cerr<<"NEIGH: " << (bond2->GetNbrAtom(atom))->GetAtomicNum()<<"\n";
+      if ((bond2->GetNbrAtom(nbr))->GetAtomicNum() == OBElements::Nitrogen){
+        //cerr << "sulfone> sulfonamide null\n" ;
+        return(true);}}
+    //cerr << "sulfone> none of the above\n";
+    return(false); // true sulfone
+  }
+
+    bool MyIsSulfonamideNitrogen(OBAtom *atom)
+  // Stefano Forli.
+  //atom is connected to a sulfur that has a total
+  //of 2 attached free oxygens
+  //e.g. C-SO2-N
+    {
+       if (!atom->GetAtomicNum() == OBElements::Nitrogen)
+          return(false);
+       OBAtom *nbr = NULL;
+       OBBond *bond1,*bond2;
+       OBBondIterator i,j;
+
+       // searching for attached sulfur
+       for (bond1 = atom->BeginBond(i); bond1; bond1 = atom->NextBond(i))
+         if ((bond1->GetNbrAtom(atom))->GetAtomicNum() == OBElements::Sulfur) {
+             nbr = bond1->GetNbrAtom(atom);
+             break;
+         }
+         if (!nbr){ //cerr << "sulfone> atom null\n" ;
+             return(false);
+         }
+
+    // check for sulfonamide
+    for (bond2 = nbr->BeginBond(j);bond2;bond2 = nbr->NextBond(j)){
+      //cerr<<"NEIGH: " << (bond2->GetNbrAtom(atom))->GetAtomicNum()<<"\n";
+      if ((bond2->GetNbrAtom(nbr))->GetAtomicNum() == OBElements::Oxygen){
+        //cerr << "sulfone> sulfonamide null\n" ;
+        return(true);}}
+    //cerr << "sulfone> none of the above\n";
+    return(false); // true sulfone
+  }
+
+
   /////////////////////////////////////////////////////////////////////////
   void OutputAtom(OBAtom* atom, ostream& ofs, const unsigned int index)
   {
@@ -385,11 +770,280 @@ namespace OpenBabel
     char element_name_final[3];
     element_name_final[2] = '\0';
 
+//Corrige tipos de átomos de aminoácidos de manera hardcodeada
+    string resnm=the_res;
+	string atid=type_name;
+
+//        if ((resnm.substr(0,3) == "HIS" || resnm[0] == 'H')) {
+//            element_name_final[0]=atid[1]; element_name_final[1]=atid[3]; }
+        if ((resnm.substr(0,3) == "HIS") && (atid == " ND1" || atid == " NE2")) {
+            element_name_final[0]='N'; element_name_final[1]='H'; }
+        else if ((resnm.substr(0,3) == "HIS") && (atid == " CG " || atid == " CD2" || atid == " CE1")) {
+            element_name_final[0]='A'; element_name_final[1]=' '; }
+        else if ((resnm.substr(0,3) == "ARG") && (atid == " NH1" || atid == " NH2" || atid == " NE " || atid == " NE1")) {
+            element_name_final[0]='N'; element_name_final[1]='D'; }
+        else if ((resnm.substr(0,3) == "LYS") && (atid == " NZ " )) {
+            element_name_final[0]='N'; element_name_final[1]='C'; }
+        else if ((resnm.substr(0,3) == "ASP") && (atid == " OD1" || atid == " OD2" )) {
+            element_name_final[0]='O'; element_name_final[1]='C'; }
+        else if ((resnm.substr(0,3) == "GLU") && (atid == " OE1" || atid == " OE2" )) {
+            element_name_final[0]='O'; element_name_final[1]='C'; }
+        else if ((resnm.substr(0,3) == "ASN") && (atid == " OD1" )) {
+            element_name_final[0]='O'; element_name_final[1]='M'; }
+        else if ((resnm.substr(0,3) == "ASN") && (atid == " ND2" )) {
+            element_name_final[0]='N'; element_name_final[1]='M'; }
+        else if ((resnm.substr(0,3) == "GLN") && (atid == " OE1" )) {
+            element_name_final[0]='O'; element_name_final[1]='M'; }
+        else if ((resnm.substr(0,3) == "GLN") && (atid == " NE2" )) {
+            element_name_final[0]='N'; element_name_final[1]='M'; }
+        else if ((atid == " O  ") && ( resnm.substr(0,3) == "ARG" || resnm.substr(0,3) == "HIS" || resnm.substr(0,3) == "LYS" || resnm.substr(0,3) == "ASP" || resnm.substr(0,3) == "GLU" || resnm.substr(0,3) == "SER" || resnm.substr(0,3) == "THR" || resnm.substr(0,3) == "ASN" || resnm.substr(0,3) == "GLN" || resnm.substr(0,3) == "CYS" || resnm.substr(0,3) == "SEC" || resnm.substr(0,3) == "GLY" || resnm.substr(0,3) == "PRO" || resnm.substr(0,3) == "ALA" || resnm.substr(0,3) == "VAL" || resnm.substr(0,3) == "ILE" || resnm.substr(0,3) == "LEU" || resnm.substr(0,3) == "MET" || resnm.substr(0,3) == "PHE" || resnm.substr(0,3) == "TYR" || resnm.substr(0,3) == "TRP" || resnm.substr(0,3) == "TPO" )) {
+            element_name_final[0]='O'; element_name_final[1]='M'; }
+		else if ((atid == " N  ") && ( resnm.substr(0,3) == "ARG" || resnm.substr(0,3) == "HIS" || resnm.substr(0,3) == "LYS" || resnm.substr(0,3) == "ASP" || resnm.substr(0,3) == "GLU" || resnm.substr(0,3) == "SER" || resnm.substr(0,3) == "THR" || resnm.substr(0,3) == "ASN" || resnm.substr(0,3) == "GLN" || resnm.substr(0,3) == "CYS" || resnm.substr(0,3) == "SEC" || resnm.substr(0,3) == "GLY" || resnm.substr(0,3) == "PRO" || resnm.substr(0,3) == "ALA" || resnm.substr(0,3) == "VAL" || resnm.substr(0,3) == "ILE" || resnm.substr(0,3) == "LEU" || resnm.substr(0,3) == "MET" || resnm.substr(0,3) == "PHE" || resnm.substr(0,3) == "TYR" || resnm.substr(0,3) == "TRP" || resnm.substr(0,3) == "TPO" )) {
+            element_name_final[0]='N'; element_name_final[1]='M'; }
+        else if ((atid == " OXT") && ( resnm.substr(0,3) == "ARG" || resnm.substr(0,3) == "HIS" || resnm.substr(0,3) == "LYS" || resnm.substr(0,3) == "ASP" || resnm.substr(0,3) == "GLU" || resnm.substr(0,3) == "SER" || resnm.substr(0,3) == "THR" || resnm.substr(0,3) == "ASN" || resnm.substr(0,3) == "GLN" || resnm.substr(0,3) == "CYS" || resnm.substr(0,3) == "SEC" || resnm.substr(0,3) == "GLY" || resnm.substr(0,3) == "PRO" || resnm.substr(0,3) == "ALA" || resnm.substr(0,3) == "VAL" || resnm.substr(0,3) == "ILE" || resnm.substr(0,3) == "LEU" || resnm.substr(0,3) == "MET" || resnm.substr(0,3) == "PHE" || resnm.substr(0,3) == "TYR" || resnm.substr(0,3) == "TRP" || resnm.substr(0,3) == "TPO" )) {
+            element_name_final[0]='O'; element_name_final[1]='C'; }
+       
+
+
     if (atom->GetAtomicNum() == OBElements::Hydrogen) {element_name_final[0]='H'; element_name_final[1]='D';}
-    else if ((atom->GetAtomicNum() == OBElements::Carbon) && (atom->IsAromatic())) {element_name_final[0]='A'; element_name_final[1]=' ';}
-    else if (atom->GetAtomicNum() == OBElements::Oxygen)  {element_name_final[0]='O'; element_name_final[1]='A';}
-    else if ((atom->GetAtomicNum() == OBElements::Nitrogen) && (atom->IsHbondAcceptor())) {element_name_final[0]='N'; element_name_final[1]='A';}
-    else if ((atom->GetAtomicNum() == OBElements::Sulfur) && (atom->IsHbondAcceptor())) {element_name_final[0]='S'; element_name_final[1]='A';}
+//////////////////////////////////////////////////
+//Los C
+//////////////////////////////////////////////////
+   else if  (atom->GetAtomicNum() == OBElements::Carbon)  {
+     
+         string str;
+         str=atom->GetType();
+     
+         if (atom->IsAromatic()) {
+   
+                     element_name_final[0]='A'; element_name_final[1]=' ';
+   
+         } else {
+             switch (atom->GetHyb()) {
+                case 3:
+                     if      (atom->GetHvyDegree()==0)   {element_name_final[0]='C'; element_name_final[1]='1';}
+                     else if (atom->GetHvyDegree()==1)   {element_name_final[0]='C'; element_name_final[1]='3';}
+                     else if (atom->GetHvyDegree()==2)   {element_name_final[0]='C'; element_name_final[1]='2';}
+                     else if (atom->GetHvyDegree()==3)   {element_name_final[0]='C'; element_name_final[1]='1';}
+                     else if (atom->GetHvyDegree()==4)   {element_name_final[0]='C'; element_name_final[1]='1';}
+                     else  cout << "Carbono de hibridizacion 3 sin tipo de atomo";
+                     break;
+                 case 2:
+                     element_name_final[0]='A';  element_name_final[1]='0';
+                     break;
+                 case 1:
+                     element_name_final[0]='A'; element_name_final[1]='0';
+                     break;
+                 default:
+                     cout << "Que corno paso con los Carbonos" ;
+                 break;
+            }
+        }
+   }
+
+//////////////////////////////////////////////////
+//Los O
+//////////////////////////////////////////////////
+
+	else if (atom->GetAtomicNum() == OBElements::Oxygen)  {
+		element_name_final[0]='O';
+
+/*      ### O DONORES Y DONORES/ACEPTORES ### */
+		if (atom->IsHbondDonor() && atom->IsHbondAcceptor() ) {
+			if (MyIsPyridineOxygen(atom)){
+//		        element_name_final[1]='Y';
+	            element_name_final[1]='7';
+			}
+    		else {
+//        		element_name_final[1]='D';
+	            element_name_final[1]='7';
+			}
+		}
+
+
+/*      ### O SP2 ### */
+        else if (atom->GetHvyDegree() == 1) {
+        	if (atom->IsCarboxylOxygen() ) {
+//        	    element_name_final[1]='C';
+        	    element_name_final[1]='1';
+			}
+        	else if (atom->IsSulfateOxygen() ) {
+//        	    element_name_final[1]='Z';
+        	    element_name_final[1]='2';
+			}
+			else if (MyIsPyridineOxygen(atom)){
+//		        element_name_final[1]='a';
+		        element_name_final[1]='3';
+			}
+			else if (MyIsEsterCarbonile(atom)){
+//                element_name_final[1]='L';
+		        element_name_final[1]='3';
+			}
+			else if (MyIsAmideOxygen(atom)){
+//		    	element_name_final[1]='M';					
+		    	element_name_final[1]='2';		
+			}
+	        else if (MyIsPhosphateOxygen(atom) ) {
+//	            element_name_final[1]='P';
+	            element_name_final[1]='3';
+	        }
+	        else if (MyIsSulfonamideOxygen(atom) ) {
+//	            element_name_final[1]='S';
+	            element_name_final[1]='4';
+	        }
+			else if (atom->IsNitroOxygen()){ 
+//        		element_name_final[1]='N';
+	            element_name_final[1]='4';
+		    }
+			else if (MyIsCarbonile(atom)){
+//		        element_name_final[1]='A';
+		        element_name_final[1]='3';
+			}
+			else {
+//		        element_name_final[1]='X';
+	            element_name_final[1]='4';
+			}
+		}
+/*      ### O SP3/AROMATICOS ### */
+        else if (atom->GetHvyDegree() == 2) {
+			if (MyIsPhosphateBridgeOxygen(atom) ) {
+//	            element_name_final[1]='B';
+		        element_name_final[1]='3';
+	        }
+			else if (MyIsEsterOxygen(atom)){ 
+//		        element_name_final[1]='T';
+		        element_name_final[1]='3';
+			}
+		   	else if (atom->IsAromatic()){
+//				element_name_final[1]='R';
+	            element_name_final[1]='4';
+			}
+			else if (MyIsEtherOxygen(atom)) {
+//				element_name_final[1]='E';
+		        element_name_final[1]='3';
+	    	}
+			else {
+//		        element_name_final[1]='x';
+	            element_name_final[1]='4';
+			}
+		}
+	}
+
+//////////////////////////////////////////////////
+//Los N
+//////////////////////////////////////////////////
+
+    else if (atom->GetAtomicNum() == OBElements::Nitrogen) {
+    	element_name_final[0]='N';
+        string str;
+        str=atom->GetType();
+        //std::cout << str << "\n";
+
+/*      ### N DONORES Y DONORES/ACEPTORES ### */
+    	if (atom->IsHbondDonor()) { 
+            if ( str=="N3+" ) {
+//               	element_name_final[1]='C'; 
+               	element_name_final[1]='1'; 
+			} // N cargado
+			else if (atom->IsAromatic()){
+//           	    element_name_final[1]='r'; // amina terciaria aromatica
+               	element_name_final[1]='2'; 
+			}
+			else if (MyIsSulfonamideNitrogen(atom)) {
+//		        element_name_final[1]='S'; // nitrogeno sulfonamida - donor y aceptor?
+               	element_name_final[1]='2'; 
+			}
+		 	else if (MyIsAnilineNitrogen(atom) && atom->IsHbondDonor() ) {
+//                element_name_final[1]='N'; // anilina donor fuerte
+               	element_name_final[1]='2'; 
+			}
+	        else if ( atom->IsAmideNitrogen() ){
+//		        element_name_final[1]='M'; // Amida				
+               	element_name_final[1]='2'; 
+			}
+			else if (MyIsAmidineNitrogen(atom)) {
+//	            element_name_final[1]='D';	// amidinas		
+               	element_name_final[1]='2'; 	
+			}
+/*usar SMART else if () {
+	            element_name_final[1]='D';	// guanidinio							
+			} */
+			else {    		
+//				element_name_final[1]='d'; // aminas
+               	element_name_final[1]='2'; 
+			}
+		}
+/*      ### N ACEPTORES ### */	
+		else if (atom->IsHbondAcceptor()) {
+			if (MyIsNitrileNitrogen(atom) && atom->IsHbondAcceptor() ) {
+//                    element_name_final[1]='L'; // nitrilo aceptor medio
+               	element_name_final[1]='7'; 
+			}	        
+			else if (atom->IsAromatic()) {
+//   	           	element_name_final[1]='R'; // aceptores aromaticos
+               	element_name_final[1]='7'; 
+			}
+			else {
+//	        	element_name_final[1]='A'; // Parecen ser muy malos aceptores
+               	element_name_final[1]='7'; 
+			}
+			
+		}
+/*      ### N NO DONORES NI ACEPTORES ### */
+		else {
+//	        element_name_final[1]='x';
+               	element_name_final[1]='8'; 
+		}
+
+    }
+
+/////////////////////////////////////////
+//Los S
+////////////////////////////////////////
+    else if (atom->GetAtomicNum() == OBElements::Sulfur) {
+        element_name_final[0]='S';
+//        element_name_final[1]='x';
+          element_name_final[1]='2';
+//		  if ((atom->IsHbondDonor()) && (! MyIsSulfurAcceptor(atom))) {
+//			   if (atom->IsInRing()) {
+//               	element_name_final[1]='2';
+//			   if (atom->IsAromatic())
+//                element_name_final[1]='r';
+//	           }
+//               else {
+//                element_name_final[1]='d';
+//				}
+//           }
+		if  (MyIsThioEtherSulfur(atom)) {
+//			element_name_final[1]='T';
+               element_name_final[1]='3';
+		}
+		else if  (MyIsDiSulfur(atom)) {
+//			element_name_final[1]='S';
+               element_name_final[1]='3';
+		}
+		else if  (MyIsThioOxoSulfur(atom)) {
+//			element_name_final[1]='a';
+            element_name_final[1]='2';
+		}
+        else if (MyIsSulfurAcceptor(atom)) {
+//            element_name_final[1]='A';
+               element_name_final[1]='3';
+			if (atom->IsHbondDonor()) {
+//             element_name_final[1]='D';
+               element_name_final[1]='1';
+			}
+			else if  ((resnm.substr(0,3) == "CYS" || resnm[0] == 'H') && (atid == " SG ")) { //considera protonadas a todas las CYS
+//            	element_name_final[1]='D'; 
+                element_name_final[1]='1';
+			}
+		}			
+//		if (atom->IsInRing()) {
+//                      element_name_final[1]='1';
+//	    if (atom->IsAromatic())
+//                  element_name_final[1]='R';
+//		}
+	}
     else
     {
       if (!isalnum(element_name[0])) {element_name_final[0]=' ';}
@@ -1082,13 +1736,30 @@ namespace OpenBabel
         (pdbt_element == "G ") || (pdbt_element == " G") || (pdbt_element == "GA") || (pdbt_element == "J ") ||
         (pdbt_element == " J") || (pdbt_element == "Q ") || (pdbt_element == " Q") )
         {element = "C"; element += " ";} //all these are carbons
-      else if (pdbt_element == "HD") {element = "H"; element += " ";} //HD are hydrogens
-      else if (pdbt_element == "HS") {element = "H"; element += " ";} //HS are hydrogens
-      else if (pdbt_element == "NA") {element = "N"; element += " ";} //NA are nitrogens
-      else if (pdbt_element == "NS") {element = "N"; element += " ";} //NS are nitrogens
-      else if (pdbt_element == "OA") {element = "O"; element += " ";} //OA are oxygens
-      else if (pdbt_element == "OS") {element = "O"; element += " ";} //OS are oxygens
-      else if (pdbt_element == "SA") {element = "S"; element += " ";} //SA are sulphurs
+     else if (pdbt_element == "HD") {element = "H"; element += " ";} //HD are hydrogens
+     else if (pdbt_element == "O1") {element = "O"; element += " ";} //OC are oxygens
+     else if (pdbt_element == "O2") {element = "O"; element += " ";} //OC are oxygens
+     else if (pdbt_element == "O3") {element = "O"; element += " ";} //OC are oxygens
+     else if (pdbt_element == "O4") {element = "O"; element += " ";} //OC are oxygens
+     else if (pdbt_element == "O5") {element = "O"; element += " ";} //OC are oxygens
+     else if (pdbt_element == "O6") {element = "O"; element += " ";} //OC are oxygens
+     else if (pdbt_element == "O7") {element = "O"; element += " ";} //OC are oxygens
+     else if (pdbt_element == "O8") {element = "O"; element += " ";} //OC are oxygens
+     else if (pdbt_element == "N1") {element = "N"; element += " ";} //OC are oxygens
+     else if (pdbt_element == "N2") {element = "N"; element += " ";} //OC are oxygens
+     else if (pdbt_element == "N3") {element = "N"; element += " ";} //OC are oxygens
+     else if (pdbt_element == "N4") {element = "N"; element += " ";} //OC are oxygens
+     else if (pdbt_element == "N5") {element = "N"; element += " ";} //OC are oxygens
+     else if (pdbt_element == "N6") {element = "N"; element += " ";} //OC are oxygens
+     else if (pdbt_element == "N7") {element = "N"; element += " ";} //OC are oxygens
+     else if (pdbt_element == "N8") {element = "N"; element += " ";} //OC are oxygens
+     else if (pdbt_element == "S1") {element = "S"; element += " ";} //OC are oxygens
+     else if (pdbt_element == "S2") {element = "S"; element += " ";} //OC are oxygens
+     else if (pdbt_element == "S3") {element = "S"; element += " ";} //OC are oxygens
+     else if (pdbt_element == "A0") {element = "C"; element += " ";} //OC are oxygens
+      else if (pdbt_element == "C1") {element = "C"; element += " ";}
+      else if (pdbt_element == "C2") {element = "C"; element += " ";}
+      else if (pdbt_element == "C3") {element = "C"; element += " ";}
       else {element = pdbt_element;}
 
       if (isalpha(element[0])) //trims the name if needed
