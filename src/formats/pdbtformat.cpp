@@ -1290,7 +1290,7 @@ bool MyIsEsterCarbonile(OBAtom *atom)
       for (vector <unsigned int>::iterator it=(*tree.find(i)).second.parents.end(); it != (*tree.find(i)).second.parents.begin(); )
       {
         --it;
-        if ((*it)==0) {break;} //do not close the main root; that is closed seperately
+        if ((*it)==0) {break;} //do not close the main root; that is closed separately
         vector <unsigned int>::iterator it_parent=it;
         --it_parent;
         if ((*tree.find(*it)).second.children.size() == 0)
