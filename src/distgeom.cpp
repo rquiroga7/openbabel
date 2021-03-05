@@ -30,6 +30,7 @@ GNU General Public License for more details.
 #include <openbabel/generic.h>
 #include "rand.h"
 #include <LBFGS.h>
+#include "stereo/gen3dstereohelper.h"
 
 #include <openbabel/stereo/stereo.h>
 #include <openbabel/stereo/cistrans.h>
@@ -62,6 +63,7 @@ namespace OpenBabel {
       bounds = Eigen::MatrixXf(static_cast<int>(N), static_cast<int>(N));
       preMet = Eigen::MatrixXf(bounds);
       debug = false;
+      success = false;
     }
     ~DistanceGeometryPrivate()
     { }
@@ -102,19 +104,22 @@ namespace OpenBabel {
     }
 
     Eigen::MatrixXf bounds, preMet;
-    bool debug; double maxBoxSize; };
+    bool debug; double maxBoxSize;
+    OBGen3DStereoHelper stereoHelper;
+    bool success;
+  };
 
 
-  OBDistanceGeometry::OBDistanceGeometry(): _d(NULL) {}
+  OBDistanceGeometry::OBDistanceGeometry(): _d(nullptr) {}
 
-  OBDistanceGeometry::OBDistanceGeometry(const OBMol &mol, bool useCurrentGeometry): _d(NULL)
+  OBDistanceGeometry::OBDistanceGeometry(const OBMol &mol, bool useCurrentGeometry): _d(nullptr)
   {
     Setup(mol, useCurrentGeometry);
   }
 
   OBDistanceGeometry::~OBDistanceGeometry()
   {
-    if (_d != NULL)
+    if (_d != nullptr)
       delete _d;
   }
 
@@ -126,20 +131,19 @@ namespace OpenBabel {
   }
   bool OBDistanceGeometry::Setup(const OBMol &mol, bool useCurrentGeometry)
   {
-    if (_d != NULL)
+    if (_d != nullptr)
       delete _d;
     // TODO: add IsSetupNeeded() like OBForceField to prevent duplication of work
 
     dim = 4;
     _mol = mol;
 
-    OBConversion conv;
-    conv.SetOutFormat("can");
-    input_smiles = conv.WriteString(&_mol, true);
+    _d = new DistanceGeometryPrivate(mol.NumAtoms());
+
+    _d->stereoHelper.Setup(&_mol);
 
     _mol.SetDimension(3);
     _vdata = _mol.GetAllData(OBGenericDataType::StereoData);
-    _d = new DistanceGeometryPrivate(mol.NumAtoms());
 
     SetUpperBounds();
     // Do we use the current geometry for default 1-2 and 1-3 bounds?
@@ -180,15 +184,18 @@ namespace OpenBabel {
         OBTetrahedralStereo::Config config = ts->GetConfig();
         vector<unsigned long> nbrs;
 
-        nbrs.push_back(_mol.GetAtomById(config.from)->GetIdx()-1);
-        for(size_t i=0; i<config.refs.size(); i++) {
-          nbrs.push_back(_mol.GetAtomById(config.refs[i])->GetIdx()-1);
-        }
-
-        // This is required to avoid segfault (why?)
         unsigned long centerIdx = _mol.GetAtomById(config.center)->GetIdx()-1;
-        for(size_t i=0; i<nbrs.size(); i++) {
-          if (nbrs[i] > _mol.NumAtoms()) nbrs[i] = centerIdx;
+
+        if (config.from == OBStereo::ImplicitRef)
+          nbrs.push_back(centerIdx);
+        else
+          nbrs.push_back(_mol.GetAtomById(config.from)->GetIdx()-1);
+
+        for(size_t i=0; i<config.refs.size(); i++) {
+          if (config.refs[i] == OBStereo::ImplicitRef)
+            nbrs.push_back(centerIdx);
+          else
+            nbrs.push_back(_mol.GetAtomById(config.refs[i])->GetIdx()-1);
         }
 
         if(config.winding == OBStereo::Clockwise) {
@@ -238,7 +245,7 @@ namespace OpenBabel {
     // If we're in a unit cell, the maximum distance is 1/2 the longest body diagonal
     //   (remember that the unit cell wraps around)
     OBUnitCell* pUC = (OBUnitCell*)_mol.GetData(OBGenericDataType::UnitCell);
-    if (pUC != NULL) {
+    if (pUC != nullptr) {
       vector<vector3> cellVectors = pUC->GetCellVectors();
 
       if (cellVectors.size() == 3) {
@@ -287,7 +294,15 @@ namespace OpenBabel {
 
   inline double Calculate13Angle(double a, double b, double c)
   {
-    return acos((SQUARE(a) + SQUARE(b) - SQUARE(c)) / (2.0*a*b));
+    double cosine = (SQUARE(a) + SQUARE(b) - SQUARE(c)) / (2.0*a*b);
+
+    // Handle cases where cosine is outside [-1, 1] range.
+    if (cosine > 1.0)
+      return 0.0;
+    if (cosine < -1.0)
+      return M_PI;
+
+    return acos(cosine);
   }
 
   // When atoms i and j are in a 1-3 relationship, the distance
@@ -311,7 +326,7 @@ namespace OpenBabel {
       a = _mol.GetAtom((*angle)[0] + 1);
       b = _mol.GetAtom((*angle)[1] + 1);
       c = _mol.GetAtom((*angle)[2] + 1);
-      if (b->GetBond(c) != NULL)
+      if (b->GetBond(c) != nullptr)
         continue;
       i = (*angle)[1];
       j = (*angle)[2];
@@ -469,7 +484,7 @@ namespace OpenBabel {
       c = _mol.GetAtom((*t)[2] + 1);
       d = _mol.GetAtom((*t)[3] + 1);
 
-      if (a->GetBond(d) != NULL)
+      if (a->GetBond(d) != nullptr)
         continue; // these are bonded
       if (_d->GetLowerBounds((*t)[0], (*t)[3]) > 0.01) // we visited this
         continue;
@@ -675,7 +690,7 @@ namespace OpenBabel {
         }
       }
     // didn't find anything, return NULL
-    return NULL;
+    return nullptr;
   }
 
   // - when atoms i and j are in a 1-5 relationship, the lower distance
@@ -709,7 +724,7 @@ namespace OpenBabel {
       B = Calculate13Angle(rAB, rBC, rAC);
       C = Calculate13Angle(rBC, rCD, rBD);
 
-      OBCisTransStereo *stereo = NULL;
+      OBCisTransStereo *stereo = nullptr;
 
       // For neighbors of d
       //  Actually depends on stereo of bond C-D
@@ -718,7 +733,7 @@ namespace OpenBabel {
         stereo = GetCisTransStereo(cd);
       }
       FOR_NBORS_OF_ATOM(e, d) {
-        if (_mol.GetBond(a, &*e) != NULL)
+        if (_mol.GetBond(a, &*e) != nullptr)
           continue; // Already handled by 1,2 interaction
         if (_d->GetLowerBounds((*t)[0], e->GetIdx() - 1) > 0.01) // we visited this
           continue;
@@ -749,13 +764,13 @@ namespace OpenBabel {
 
       // OK now for neighbors of a (i.e., z-a-b-c-d)
       //  Now depends on stereo of bond a-b
-      stereo = NULL; // reset
+      stereo = nullptr; // reset
       ab = _mol.GetBond(a, b);
       if (ab && ab->GetBondOrder() == 2 && !ab->IsAromatic()) {
         stereo = GetCisTransStereo(ab);
       }
       FOR_NBORS_OF_ATOM(z, a) {
-        if (_mol.GetBond(d, &*z) != NULL)
+        if (_mol.GetBond(d, &*z) != nullptr)
           continue; // Already handled by 1,2 interaction
         if (_d->GetLowerBounds((*t)[0], z->GetIdx() - 1) > 0.01) // we visited this
           continue;
@@ -911,12 +926,16 @@ namespace OpenBabel {
 
   bool OBDistanceGeometry::CheckStereoConstraints()
   {
+    return _d->stereoHelper.Check(&_mol);
+
+    /*
     // Check stereo by canonical SMILES
     StereoFrom3D(&_mol, true);
     OBConversion conv;
     conv.SetOutFormat("can");
     std::string predicted_smiles = conv.WriteString(&_mol, true);
     return input_smiles == predicted_smiles;
+    */
 
     // Check all stereo constraints
     // First, gather the known, specified stereochemistry
@@ -978,14 +997,14 @@ namespace OpenBabel {
   Eigen::MatrixXf OBDistanceGeometry::GetBoundsMatrix()
   {
     Eigen::MatrixXf returnValue;
-    if (_d != NULL)
+    if (_d != nullptr)
       returnValue = _d->bounds;
     return returnValue;
   }
 
   bool OBDistanceGeometry::SetBoundsMatrix(const Eigen::MatrixXf bounds)
   {
-    if (_d != NULL) {
+    if (_d != nullptr) {
       // Check size of bounds matrix
       _d->bounds = bounds;
       return true;
@@ -1164,22 +1183,24 @@ namespace OpenBabel {
       cerr << " max box size: " << _d->maxBoxSize << endl;
     }
 
-    bool success = false;
-    unsigned int maxIter = 1 * _mol.NumAtoms();
+    _d->success = false;
+    unsigned int maxIter = 10 * _mol.NumAtoms();
     for (unsigned int trial = 0; trial < maxIter; trial++) {
       generateInitialCoords();
       firstMinimization();
       if (dim == 4) minimizeFourthDimension();
       if (CheckStereoConstraints() && CheckBounds()) {
-        success = true;
+        _d->success = true;
         break;
       }
-      if (_d->debug && !success)
+      if (_d->debug && !_d->success)
         cerr << "Stereo unsatisfied, trying again" << endl;
     }
-    if(!success) {
-      obErrorLog.ThrowError(__FUNCTION__, "Distance Geometry failed.", obWarning);
-    }
+  }
+
+  bool OBDistanceGeometry::WasSuccessful() const
+  {
+    return _d->success;
   }
 
   bool OBDistanceGeometry::CheckBounds()
@@ -1242,7 +1263,7 @@ namespace OpenBabel {
     if (_mol.NumConformers() > 0) {
       int k,l;
       vector<double*> conf;
-      double* xyz = NULL;
+      double* xyz = nullptr;
       for (k=0 ; k<_mol.NumConformers() ; ++k) {
         xyz = new double [3*_mol.NumAtoms()];
         for (l=0 ; l<(int) (3*_mol.NumAtoms()) ; ++l)
@@ -1262,7 +1283,7 @@ namespace OpenBabel {
     AddConformer();
     GetConformers(mol);
 
-    return true;
+    return _d->success;
   }
 
   double DistGeomFunc::operator() (const Eigen::VectorXd& x, Eigen::VectorXd& grad) {

@@ -70,7 +70,7 @@ namespace OpenBabel
         if (_sp)
           {
             delete _sp;
-            _sp = NULL;
+            _sp = nullptr;
           }
       }
 
@@ -532,7 +532,7 @@ namespace OpenBabel
       _fixedatoms.Clear();
     }
     /**
-     * Intialize the private OBRotorRules database from a specific file.
+     * Initialize the private OBRotorRules database from a specific file.
      */
     void Init(std::string &fname)
     {
@@ -588,7 +588,7 @@ namespace OpenBabel
     OBRotor *BeginRotor(OBRotorIterator &i)
     {
       i = _rotor.begin();
-      return((i ==_rotor.end()) ? NULL:*i);
+      return((i ==_rotor.end()) ? nullptr:*i);
     }
     /**
      * Get a pointer to the next iterator.
@@ -597,7 +597,7 @@ namespace OpenBabel
     OBRotor *NextRotor(OBRotorIterator &i)
     {
       ++i;
-      return((i ==_rotor.end()) ? NULL:*i);
+      return((i ==_rotor.end()) ? nullptr:*i);
     }
     /**
      * Get the rotor list begin iterator.
