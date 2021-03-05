@@ -1076,8 +1076,16 @@ bool MyIsEsterCarbonile(OBAtom *atom)
             element_name_final[0]='N'; element_name_final[1]='1'; }
         else if ((resnm.substr(0,3) == "ASP") && (atid == " OD1" || atid == " OD2" )) {
             element_name_final[0]='O'; element_name_final[1]='1'; }
+        else if ((resnm.substr(0,3) == "ASP") && (atid == " CG " )) {
+            element_name_final[0]='A'; element_name_final[1]='1'; }
+        else if ((resnm.substr(0,3) == "ASN") && (atid == " CG " )) {
+            element_name_final[0]='A'; element_name_final[1]='1'; }
         else if ((resnm.substr(0,3) == "GLU") && (atid == " OE1" || atid == " OE2" )) {
             element_name_final[0]='O'; element_name_final[1]='1'; }
+        else if ((resnm.substr(0,3) == "GLU") && (atid == " CD " )) {
+            element_name_final[0]='A'; element_name_final[1]='1'; }
+        else if ((resnm.substr(0,3) == "GLN") && (atid == " CD " )) {
+            element_name_final[0]='A'; element_name_final[1]='1'; }
         else if ((resnm.substr(0,3) == "ASN") && (atid == " OD1" )) {
             element_name_final[0]='O'; element_name_final[1]='2'; }
         else if ((resnm.substr(0,3) == "ASN") && (atid == " ND2" )) {
