@@ -819,11 +819,8 @@ bool MyIsEsterCarbonile(OBAtom *atom)
          string str;
          str=atom->GetType();
      
-         if (atom->IsAromatic()) {
-   
-                     element_name_final[0]='A'; element_name_final[1]=' ';
-   
-         } else {
+         if (atom->IsAromatic()) { element_name_final[0]='A'; element_name_final[1]=' ';}
+         else {
              switch (atom->GetHyb()) {
                 case 3:
                      if      (atom->GetHvyDegree()==0)   {element_name_final[0]='C'; element_name_final[1]='1';}
